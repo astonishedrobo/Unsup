@@ -71,7 +71,8 @@ def _fit_epoch(model, loader, criterion, optimizer, depth_est= True, color_seg =
 
             # print("training loss",loss.item())
             
-            # if torch.isnan(loss).any() or counter == 3:
+            if torch.isnan(loss).any():
+                print("Model Pretrained")
             #     # foo_bar = torch.isnan(data)
             #     # print(foo_bar.any(), data[foo_bar])
                 
@@ -82,7 +83,8 @@ def _fit_epoch(model, loader, criterion, optimizer, depth_est= True, color_seg =
             #         else:
             #             print("Loss NaN")
 
-            #             # print("Vals:",torch.max(color), torch.min(color))
+                print("Vals:",torch.max(color), torch.min(color))
+                exit(0)
             #             # print(color)
             #             pr = True
                 
@@ -132,12 +134,12 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
 
     # Tensorboard Log
     if save_path is not None and loss_log_dir is None:
-        log_directory_path = os.path.dirname(save_path)
+        log_directory_path = os.path.dirname(os.path.dirname(save_path))
         os.makedirs(os.path.join(log_directory_path, "log_directory"), exist_ok=True)
         log_directory = os.path.join(log_directory_path, "log_directory")
-        existing_files = len(os.listdir(log_directory))
-        os.makedirs(os.path.join(log_directory, str(existing_files+1)))
-        lg = os.path.join(log_directory, str(existing_files+1))
+        folder_name = os.path.splitext(os.path.basename(save_path))[0]
+        os.makedirs(os.path.join(log_directory, folder_name), exist_ok=True)
+        lg = os.path.join(log_directory, folder_name)
         writer = SummaryWriter(lg)
 
     elif loss_log_dir is not None:
@@ -166,7 +168,9 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
             
             if validation_data:
                 vl = validate(model, validation_data, criterion, batch_size, depth_est, color_seg)
+                print("Valid: ", validation_loss)
                 validation_loss.append(vl)
+                writer.add_scalar('Loss/validation', vl, epoch_count)
                 with open(save_path.replace('.pth','_v.pkl'),'wb') as fp:
                     pkl.dump(validation_loss,fp)
     try:
@@ -183,11 +187,11 @@ def validate(model, validation_data, criterion, batch_size, depth_est= True, col
         for data, anno,target in loader:
             data = Variable(data.cuda())
             anno = Variable(anno.cuda())
-            target['x_A'] = target['x_A'].cuda()
-            target['y_A'] = target['y_A'].cuda()
-            target['x_B'] = target['x_B'].cuda()
-            target['y_B'] = target['y_B'].cuda()
-            target['ordinal_relation'] = Variable(target['ordinal_relation']).cuda()
+            # target['x_A'] = target['x_A'].cuda()
+            # target['y_A'] = target['y_A'].cuda()
+            # target['x_B'] = target['x_B'].cuda()
+            # target['y_B'] = target['y_B'].cuda()
+            # target['ordinal_relation'] = Variable(target['ordinal_relation']).cuda()
             if depth_est and not color_seg:
                 output = model(data)
                 loss = criterion(output, target)
@@ -200,7 +204,7 @@ def validate(model, validation_data, criterion, batch_size, depth_est= True, col
 
             #output = model(data)
             #loss = criterion(output, target)
-            #print(loss.item())
+            # print(loss.item())
             val_loss.update(loss.item())
     return val_loss.avg
 

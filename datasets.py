@@ -6,6 +6,8 @@ from torch.utils.data import Dataset
 import numpy as np
 import scipy.io
 import glob
+from utils.pallete import *
+import re
 
 import torch
 class NYUDepth(Dataset):
@@ -66,8 +68,8 @@ class NYUDepth(Dataset):
 class NYUSeg(Dataset):
     def __init__(self, path_img, path_target, transforms):
         self.path_img = path_img
-        self.imgs = glob.glob(path_img+'/*.jpg')
-        self.lbls = glob.glob(path_target+'/*.png')
+        self.imgs = sorted(glob.glob(path_img+'/*.jpg'))
+        self.lbls = sorted(glob.glob(path_target+'/*.png'))
         
         #with open(path_target, 'rb') as f:
         #    self.targets = pickle.load(f)
@@ -84,9 +86,18 @@ class NYUSeg(Dataset):
         img = Image.open(self.imgs[index])
         # anno = cv2.imread(self.imgs[index].replace('/train/','/train_labels_13/').replace('/test/','/test_labels_13/').replace('nyu_rgb_','new_nyu_class13_'),cv2.IMREAD_UNCHANGED)
         anno = Image.open(self.lbls[index])
-        img_np = np.array(img)
-        if np.isnan(img_np).any():
-            print("Nan Value Image")
+        img_name = re.findall(r'\d+', self.imgs[index])[0]
+        anno_name = re.findall(r'\d+', self.lbls[index])[0]
+        # print(self.imgs[index])
+        # print(img_name)
+        if int(img_name) != int(anno_name):
+            print("Anamoly")
+        #if self.tolabel is True:
+        #    anno = get_mask_pallete(np.array(anno), dataset=self.dataset)
+        
+        # img_np = np.array(img)
+        # if np.isnan(img_np).any():
+        #     print("Nan Value Image")
         # anno = np.array(anno)-1
         #print(self.imgs[index],np.unique(anno))
         # anno = Image.fromarray(anno)

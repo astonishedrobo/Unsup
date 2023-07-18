@@ -514,10 +514,11 @@ def _make_pretrained_vitb_rn50_384(
 def _make_pretrained_vitl16_384(
     pretrained, use_readout="ignore", hooks=None, enable_attention_hooks=False
 ):
-    try:
-        model = timm.create_model("vit_large_patch16_384", pretrained=pretrained)
-    except Exception as e:
-        print("Error occurred while creating the model:", e)
+    # try:
+    #     model = timm.create_model("vit_large_patch16_384", pretrained=pretrained)
+    # except Exception as e:
+    #     print("Error occurred while creating the model:", e)
+    model = timm.create_model("vit_large_patch16_384", pretrained=pretrained)
 
     hooks = [5, 11, 17, 23] if hooks == None else hooks
     return _make_vit_b16_backbone(

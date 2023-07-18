@@ -4,6 +4,7 @@ import os
 import dpt.transforms as T
 from torch.optim import RMSprop, Adam
 import torch
+from torch import nn
 import matplotlib.pyplot as plt
 
 from datasets import NYUDepth, NYUSeg
@@ -14,6 +15,14 @@ from torch.backends import cudnn
 from dpt.models import DPTDepthModel, DPTSegmentationModel
 from Sophia import SophiaG
 from torch.optim.lr_scheduler import PolynomialLR
+
+from dpt.blocks import (
+    FeatureFusionBlock,
+    FeatureFusionBlock_custom,
+    Interpolate,
+    _make_encoder,
+    forward_vit,
+)
 
 def _get_aug_transform(train,grayscale = True, validation = False):
         base_size = 256#240
@@ -83,7 +92,7 @@ def main(train_data_path, train_label_path, nb_epoch, save_path, start_path=None
         num_classes = 255
         ignore_index = None
     elif data_type == 'seg':
-        train = NYUSeg(train_data_path, train_label_path, trans)
+        train = NYUSeg(train_data_path, train_label_path, trans, tolabel=(True, 'ade20k'))
         num_classes = 255
         ignore_index = None
     val = None
@@ -95,7 +104,7 @@ def main(train_data_path, train_label_path, nb_epoch, save_path, start_path=None
         if data_type == 'depth':
             val = NYUDepth(val_data_path, val_label_path, trans)
         elif data_type == 'seg':
-            val = NYUSeg(val_data_path, val_label_path, trans)
+            val = NYUSeg(val_data_path, val_label_path, trans, tolabel=(True, 'ade20k'))
 
     if model_type == 'hourglass':
         model = HourGlass(depth_est, color_seg)
@@ -110,17 +119,36 @@ def main(train_data_path, train_label_path, nb_epoch, save_path, start_path=None
             )
         elif color_seg:
             print("Checkpoint Seg")
+            features = 256
             model = DPTSegmentationModel(
                 num_classes,
-                path=None,
+                path='/home/soumyajit/DPT_inference/weights/07M-13D_21h-59m-21s.pth',
                 backbone="vitb_rn50_384",
             )
+            # model = model[:-1]
+        model.scratch.output_conv = nn.Sequential(
+            nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(features),
+            nn.ReLU(True),
+            nn.Dropout(0.1, False),
+            nn.Conv2d(features, 150, kernel_size=1),
+            Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+        )
+        model.auxlayer = nn.Sequential(
+            nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(features),
+            nn.ReLU(True),
+            nn.Dropout(0.1, False),
+            nn.Conv2d(features, 150, kernel_size=1),
+        )
+        # print(model)
+        # exit(0)
         model.cuda()
     #optimizer = RMSprop(model.parameters(), lr, momentum=0.9)
     #optimizer = DecoupledSophia(model.parameters(), lr=1e-3, betas=(0.9, 0.999), rho=0.04, weight_decay=1e-1,     estimator="Hutchinson")
     optimizer = SophiaG(model.parameters(), lr=lr, betas=(0.965, 0.99), rho = 0.01, weight_decay=0)
     # optimizer = Adam(model.parameters(), lr)
-    #optimizer = SGD(model.parameters(), lr=2e-4, momentum=0.9)
+    # optimizer = SGD(model.parameters(), lr=2e-4, momentum=0.9)
     #optimizer = PolynomialLR(optimizer_non_lrsch)
 
     if start_path:
@@ -155,18 +183,18 @@ if __name__ == '__main__':
         else:
             raise argparse.ArgumentTypeError('Boolean value expected.')
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_data_path', default='/home/soumyajit/Documents/random_sampled_ade_train/images')
-    parser.add_argument('--train_label_path', default='/home/soumyajit/Documents/random_sampled_ade_train/annotations')
+    parser.add_argument('--train_data_path', default='/home/soumyajit/ADEChallengeData2016/images/finetune')
+    parser.add_argument('--train_label_path', default='/home/soumyajit/ADEChallengeData2016/annotations/finetune')
     parser.add_argument('--val_data_path', default='/home/soumyajit/ADEChallengeData2016/images/validation')
     parser.add_argument('--val_label_path', default=None)
     parser.add_argument('--color_seg',default = True,type=str2bool)
     parser.add_argument('--depth_est',default = False,type=str2bool)
     parser.add_argument('--grayscale',default = False,type=str2bool)
-    parser.add_argument('--nb_epoch',default = 150,type = int)
+    parser.add_argument('--nb_epoch',default = 300,type = int)
     parser.add_argument('--save_path',default=os.path.join('/home/soumyajit/DPT/saved_models', datetime.now().strftime('%mM-%dD_%Hh-%Mm-%Ss')) + '.pth')
     parser.add_argument('--loss_log_dir',default=None)
     parser.add_argument('--start_path', default=None)
-    parser.add_argument('--batch_size', default=20,type  = int)
+    parser.add_argument('--batch_size', default=24,type  = int)
     parser.add_argument('--lr', default=1e-5,type = float)
     parser.add_argument('--model_type',default = 'dpt')
     parser.add_argument('--data_type',default = 'seg')
