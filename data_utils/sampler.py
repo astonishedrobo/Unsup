@@ -2,7 +2,7 @@ import os
 import random
 import shutil
 
-source_folder = "/home/soumyajit/Dataset/Slic_Merged_Segments"  # Path to the source folder with 20,000 images
+source_folder = "/mnt/efs/Data//Slic_Merged_Segments"  # Path to the source folder with 20,000 images
 folder1 = "/home/soumyajit/Dataset/train"  # Path to folder1 to save 15,000 random images
 folder2 = "/home/soumyajit/Dataset/finetune"  # Path to folder2 to save remaining 5,000 images
 

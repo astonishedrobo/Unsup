@@ -63,8 +63,9 @@ def _fit_epoch(model, loader, criterion, optimizer, depth_est= True, color_seg =
                     loss = criterion(output, target)+nn.functional.cross_entropy(color, anno,ignore_index = ignore_index)
             elif color_seg == True:
                 color = model(data)
-                
+                #print(anno.max(), anno.min())
                 if ignore_index == None:
+
                     loss = nn.functional.cross_entropy(color, anno)
                 else:
                     loss = nn.functional.cross_entropy(color, anno, ignore_index = ignore_index)
@@ -147,7 +148,7 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
         writer = SummaryWriter(loss_log_dir)
 
     train_loader = DataLoader(train, batch_size, shuffle, num_workers=num_workers, pin_memory=True,collate_fn = collate_fn)
-
+    #vl = validate(model, validation_data, criterion, batch_size, depth_est, color_seg, ignore_index=ignore_index)
     t = tqdm(range(nb_epoch), total=nb_epoch)
     training_loss = []
     validation_loss = []
@@ -179,7 +180,7 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
         pass
     return training_loss, validation_loss
                 
-def validate(model, validation_data, criterion, batch_size, depth_est= True, color_seg = False):
+def validate(model, validation_data, criterion, batch_size, depth_est= True, color_seg = False, ignore_index = None):
     model.eval()
     val_loss = AverageMeter()
     loader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
@@ -200,7 +201,11 @@ def validate(model, validation_data, criterion, batch_size, depth_est= True, col
                 loss = criterion(output, target)+nn.functional.cross_entropy(color, anno)
             elif color_seg:
                 color = model(data)
-                loss = nn.functional.cross_entropy(color, anno)
+                if ignore_index == None:
+
+                    loss = nn.functional.cross_entropy(color, anno)
+                else:
+                    loss = nn.functional.cross_entropy(color, anno, ignore_index = ignore_index)
 
             #output = model(data)
             #loss = criterion(output, target)

@@ -13,11 +13,11 @@ from train_utils import fit, save_checkpoint
 from torch.backends import cudnn
 from dpt.models import DPTDepthModel, DPTSegmentationModel
 from Sophia import SophiaG
-from torch.optim.lr_scheduler import PolynomialLR
+#from torch.optim.lr_scheduler import PolynomialLR
 
 def _get_aug_transform(train,grayscale = True, validation = False):
-        base_size = 256#240
-        crop_size = 200
+        base_size =400//2#520#240
+        crop_size =320//2#480
 
         min_size = int((0.5 if train else 1.0) * base_size)
         max_size = int((2.0 if train else 1.0) * base_size)
@@ -25,20 +25,21 @@ def _get_aug_transform(train,grayscale = True, validation = False):
         print("Doing transform")
 
         if validation:
-            transforms.append(T.RandomResize(base_size,base_size))
+            transforms.append(T.RandomResize(crop_size,crop_size))
             # return T.Compose(transforms)    
 
 
-
         if train:
-            transforms.append(T.RandomCrop(crop_size))
-            transforms.append(T.RandomHorizontalFlip(0.5))
-            transforms.append(T.RandomResize(base_size,base_size))
+                transforms.append(T.RandomResize(min_size,max_size))
+                transforms.append(T.RandomHorizontalFlip(0.5))
+                transforms.append(T.RandomCrop(crop_size))
+
 
 
         if grayscale:
             print("using grayscale")
             transforms.append(T.Grayscale(3))
+            
         transforms.append(T.ToTensor())
         transforms.append(T.ConvertImageDtype(torch.float))
         if grayscale:
@@ -84,8 +85,8 @@ def main(train_data_path, train_label_path, nb_epoch, save_path, start_path=None
         ignore_index = None
     elif data_type == 'seg':
         train = NYUSeg(train_data_path, train_label_path, trans)
-        num_classes = 255
-        ignore_index = None
+        num_classes = 256#150#
+        ignore_index = None#255#
     val = None
     if val_label_path is not None:
         if no_transform:
@@ -155,15 +156,15 @@ if __name__ == '__main__':
         else:
             raise argparse.ArgumentTypeError('Boolean value expected.')
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_data_path', default='/home/soumyajit/Documents/random_sampled_ade_train/images')
-    parser.add_argument('--train_label_path', default='/home/soumyajit/Documents/random_sampled_ade_train/annotations')
-    parser.add_argument('--val_data_path', default='/home/soumyajit/ADEChallengeData2016/images/validation')
-    parser.add_argument('--val_label_path', default=None)
+    parser.add_argument('--train_data_path', default='/mnt/efs/Data/ADEChallengeData2016/images/ade_training')
+    parser.add_argument('--train_label_path', default='/mnt//efs/Data/ADEChallengeData2016/annotations/ade_training_segm')
+    parser.add_argument('--val_data_path', default='/mnt//efs/Data/ADEChallengeData2016/images/validation')
+    parser.add_argument('--val_label_path', default='/mnt//efs/Data/ADEChallengeData2016/annotations/validation_segm')
     parser.add_argument('--color_seg',default = True,type=str2bool)
     parser.add_argument('--depth_est',default = False,type=str2bool)
     parser.add_argument('--grayscale',default = False,type=str2bool)
     parser.add_argument('--nb_epoch',default = 150,type = int)
-    parser.add_argument('--save_path',default=os.path.join('/home/soumyajit/DPT/saved_models', datetime.now().strftime('%mM-%dD_%Hh-%Mm-%Ss')) + '.pth')
+    parser.add_argument('--save_path',default=os.path.join('./saved_models', datetime.now().strftime('%mM-%dD_%Hh-%Mm-%Ss')) + '.pth')
     parser.add_argument('--loss_log_dir',default=None)
     parser.add_argument('--start_path', default=None)
     parser.add_argument('--batch_size', default=20,type  = int)
@@ -177,3 +178,4 @@ if __name__ == '__main__':
          False, val_data_path = args.val_data_path, val_label_path = args.val_label_path, grayscale = args.grayscale, model_type = args.model_type, no_transform = args.no_transform,
          data_type=args.data_type, loss_log_dir = args.loss_log_dir)
     
+

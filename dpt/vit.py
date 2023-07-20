@@ -167,7 +167,7 @@ def forward_flex(self, x):
     pos_embed = self._resize_pos_embed(
         self.pos_embed, h // self.patch_size[1], w // self.patch_size[0]
     )
-
+    #print(h, w, self.pos_embed.shape, h // self.patch_size[1], w // self.patch_size[0])
     B = x.shape[0]
 
     if hasattr(self.patch_embed, "backbone"):
@@ -188,7 +188,7 @@ def forward_flex(self, x):
             B, -1, -1
         )  # stole cls_tokens impl from Phil Wang, thanks
         x = torch.cat((cls_tokens, x), dim=1)
-
+    #print(x.shape, pos_embed.shape)
     x = x + pos_embed
     x = self.pos_drop(x)
 

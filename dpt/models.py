@@ -70,7 +70,7 @@ class DPT(BaseModel):
             x.contiguous(memory_format=torch.channels_last)
         #print(x.shape)
         layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x)
-
+        #print(layer_1.shape, layer_2.shape, layer_3.shape, layer_4.shape)
         layer_1_rn = self.scratch.layer1_rn(layer_1)
         layer_2_rn = self.scratch.layer2_rn(layer_2)
         layer_3_rn = self.scratch.layer3_rn(layer_3)

@@ -70,7 +70,7 @@ class NYUSeg(Dataset):
         self.path_img = path_img
         self.imgs = sorted(glob.glob(path_img+'/*.jpg'))
         self.lbls = sorted(glob.glob(path_target+'/*.png'))
-        
+        self.sp = path_target
         #with open(path_target, 'rb') as f:
         #    self.targets = pickle.load(f)
         #self.imgs = [target['name'] for target in self.targets]
@@ -85,7 +85,12 @@ class NYUSeg(Dataset):
         
         img = Image.open(self.imgs[index])
         # anno = cv2.imread(self.imgs[index].replace('/train/','/train_labels_13/').replace('/test/','/test_labels_13/').replace('nyu_rgb_','new_nyu_class13_'),cv2.IMREAD_UNCHANGED)
-        anno = Image.open(self.lbls[index])
+        #anno = Image.open(self.lbls[index])
+        
+        anno = cv2.imread(self.lbls[index], cv2.IMREAD_UNCHANGED)-1
+
+        anno = Image.fromarray(anno)
+
         img_name = re.findall(r'\d+', self.imgs[index])[0]
         anno_name = re.findall(r'\d+', self.lbls[index])[0]
         # print(self.imgs[index])
