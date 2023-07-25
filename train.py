@@ -178,4 +178,3 @@ if __name__ == '__main__':
          False, val_data_path = args.val_data_path, val_label_path = args.val_label_path, grayscale = args.grayscale, model_type = args.model_type, no_transform = args.no_transform,
          data_type=args.data_type, loss_log_dir = args.loss_log_dir)
     
-

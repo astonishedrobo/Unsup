@@ -169,8 +169,8 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
             
             if validation_data:
                 vl = validate(model, validation_data, criterion, batch_size, depth_est, color_seg)
-                print("Valid: ", validation_loss)
                 validation_loss.append(vl)
+                print("Valid: ", validation_loss)
                 writer.add_scalar('Loss/validation', vl, epoch_count)
                 with open(save_path.replace('.pth','_v.pkl'),'wb') as fp:
                     pkl.dump(validation_loss,fp)
@@ -209,7 +209,7 @@ def validate(model, validation_data, criterion, batch_size, depth_est= True, col
 
             #output = model(data)
             #loss = criterion(output, target)
-            # print(loss.item())
+            # print('Validation: ', loss.item())
             val_loss.update(loss.item())
     return val_loss.avg
 

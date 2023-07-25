@@ -39,8 +39,8 @@ class RandomResize:
         
         w,h = image.size
         
-        image = F.resize(image, (size,size))
-        target = F.resize(target, (size,size), interpolation=T.InterpolationMode.NEAREST)
+        image = F.resize(image, size)
+        target = F.resize(target, size, interpolation=T.InterpolationMode.NEAREST)
         if landmarks is not None:
             new_w,new_h = image.size
             landmarks = landmarks * [np.round(new_w / w), np.round(new_h / h)]
