@@ -4,12 +4,14 @@ import os
 
 import torch
 from tqdm import tqdm
+from utils.score import SegmentationMetric
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torch import nn
 from torch.utils.data.dataloader import default_collate
 import pickle as pkl
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 
 def prep_img(img):
@@ -126,7 +128,7 @@ def collate_fn(batch):
     return batched_imgs, batched_anno, batched_targets
 
 def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_seg = False, batch_size=32,
-        shuffle=True, nb_epoch=1, validation_data=None, cuda=True, num_workers=0, ignore_index = None, loss_log_dir = None):
+        shuffle=True, nb_epoch=1, validation_data=None, cuda=True, num_workers=0, ignore_index = None, loss_log_dir = None, seg_metric = None):
     # TODO: implement CUDA flags, optional metrics and lr scheduler
     if validation_data:
         print('Train on {} samples, Validate on {} samples'.format(len(train), len(validation_data)))
@@ -168,10 +170,14 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
                 pkl.dump(training_loss,fp)
             
             if validation_data:
-                vl = validate(model, validation_data, criterion, batch_size, depth_est, color_seg)
-                validation_loss.append(vl)
+                vl, pix_acc, iou = validate(model, validation_data, criterion, batch_size, depth_est, color_seg, metric = seg_metric)
+                validation_loss.append((vl, pix_acc, iou))
                 print("Valid: ", validation_loss)
+                if vl == np.min(np.array(validation_loss)):
+                    save_checkpoint(model.state_dict(), optimizer.state_dict(), save_path[:-4]+'_best.pth')
                 writer.add_scalar('Loss/validation', vl, epoch_count)
+                writer.add_scalar('Pixel Accuracy/validation', pix_acc, epoch_count)
+                writer.add_scalar('IoU/validation', iou, epoch_count)
                 with open(save_path.replace('.pth','_v.pkl'),'wb') as fp:
                     pkl.dump(validation_loss,fp)
     try:
@@ -180,9 +186,13 @@ def fit(model, train, criterion, optimizer,  save_path, depth_est= True, color_s
         pass
     return training_loss, validation_loss
                 
-def validate(model, validation_data, criterion, batch_size, depth_est= True, color_seg = False, ignore_index = None):
+def validate(model, validation_data, criterion, batch_size, depth_est = True, color_seg = False, ignore_index = None, metric=None):
     model.eval()
     val_loss = AverageMeter()
+    if metric is not None:
+        metric.reset()
+        pixAcc_meter = AverageMeter()
+        iou_meter = AverageMeter()
     loader = DataLoader(validation_data, batch_size=batch_size, shuffle=True)
     with torch.inference_mode():
         for data, anno,target in loader:
@@ -202,16 +212,19 @@ def validate(model, validation_data, criterion, batch_size, depth_est= True, col
             elif color_seg:
                 color = model(data)
                 if ignore_index == None:
-
                     loss = nn.functional.cross_entropy(color, anno)
                 else:
                     loss = nn.functional.cross_entropy(color, anno, ignore_index = ignore_index)
 
-            #output = model(data)
-            #loss = criterion(output, target)
-            # print('Validation: ', loss.item())
+            # Get Metric
+            metric.update(color, anno)
+
             val_loss.update(loss.item())
-    return val_loss.avg
+            pixAcc, iou = metric.get()
+            pixAcc_meter.update(pixAcc)
+            iou_meter.update(iou)
+
+    return (val_loss.avg, pixAcc_meter.avg, iou_meter.avg)
 
 
 def save_checkpoint(model_state, optimizer_state, filename, epoch=None, is_best=False):

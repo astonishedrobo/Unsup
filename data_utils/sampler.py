@@ -17,10 +17,10 @@ image_files = sorted([file for file in os.listdir(source_folder_target) if file.
 random_images = random.sample(image_files, 15000)
 
 # Create Folders
-os.makedirs(folder1)
-os.makedirs(folder2)
-os.makedirs(img_folder1)
-os.makedirs(img_folder2)
+# os.makedirs(folder1)
+# os.makedirs(folder2)
+# os.makedirs(img_folder1)
+# os.makedirs(img_folder2)
 
 # Move the randomly sampled images to folder1
 for image in random_images:
