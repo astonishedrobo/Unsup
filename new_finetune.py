@@ -40,7 +40,7 @@ def get_dataset(data_type, path_img, path_target, transforms):
         "depth": NYUDepth,
     }
     ds_fn = paths[data_type]
-    num_classes = 256
+    num_classes = 151
     ignore_index = None
 
     return ds_fn(path_img, path_target, transforms), num_classes, ignore_index
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_path',default=os.path.join('/home/soumyajit/Unsup/saved_models', datetime.now().strftime('%mM-%dD_%Hh-%Mm-%Ss')) + '.pth')
     parser.add_argument('--loss_log_dir',default=None)
     parser.add_argument('--start_path', default=None)
-    parser.add_argument('--batch_size', default=18,type  = int)
+    parser.add_argument('--batch_size', default=24,type  = int)
     parser.add_argument('--lr', default=1e-5,type = float)
     parser.add_argument('--model_type',default = 'dpt')
     parser.add_argument('--data_type',default = 'seg')
